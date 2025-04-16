@@ -12,7 +12,7 @@ const procesarAudio = async (req, res, next) => {
       size: req.file.size
     });
 
-    const audioPath = path.join(__dirname, '..', 'uploads', req.file.filename);
+    const audioPath = path.join(__dirname, '..', 'uploads', req.file.filename); // rutas relativa  ... 
 
     // Transcribir
     const transcription = await openai.audio.transcriptions.create({

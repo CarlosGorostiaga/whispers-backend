@@ -9,6 +9,7 @@ yarn-error.log*
 
 # Carpeta de uploads, si no quieres subir archivos temporales
 src/uploads/
+uploads
 
 # Otros archivos o carpetas temporales
 .DS_Store
