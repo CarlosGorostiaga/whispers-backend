@@ -3,6 +3,16 @@ const multer = require('multer');
 const path = require('path');
 const { procesarAudio } = require('../controller/audio.controller');
 
+
+// 1. Rate‑limit: 2 peticiones cada 3 horas por IP
+const uploadLimiter = rateLimit({
+  windowMs: 3 * 60 * 60 * 1000,  // 3 horas
+  max: 2,
+  message: { error: 'Solo puedes subir 2 audios cada 3 horas.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Lista de MIME types permitidos
 const allowedMimeTypes = [
   'audio/flac',
@@ -33,17 +43,16 @@ const extensionForMime = {
   'audio/webm': 'webm'
 };
 
+
+
 const storage = multer.diskStorage({
   destination: path.join(__dirname, '..', 'uploads'),
   filename: (req, file, cb) => {
-    // Obtenemos la extensión basada en el MIME type real del archivo
     const ext = extensionForMime[file.mimetype] || 'bin';
-    // Arma el nombre usando la extensión adecuada (por ejemplo, 1744789070519-grabacion.m4a)
     cb(null, Date.now() + '-grabacion.' + ext);
   }
 });
 
-// Filtro de archivos de audio
 const fileFilter = (req, file, cb) => {
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
@@ -56,7 +65,12 @@ const upload = multer({ storage, fileFilter });
 
 const router = express.Router();
 
-// Ruta para procesar el audio
-router.post('/audio', upload.single('audio'), procesarAudio);
+// Aplicamos el rate limiter Y luego Multer + controlador
+router.post(
+  '/audio',
+  uploadLimiter,
+  upload.single('audio'),
+  procesarAudio
+);
 
 module.exports = router;
