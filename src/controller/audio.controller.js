@@ -9,9 +9,9 @@ const procesarAudio = async (req, res, next) => {
 
     // 2. Validación de duración (20 min = 1200 s)
     const duration = await getAudioDurationInSeconds(audioPath);
-    if (duration > 20 * 60) {
+    if (duration > 10 * 60) {
       fs.unlinkSync(audioPath);
-      return res.status(400).json({ error: 'El audio no puede durar más de 20 minutos.' });
+      return res.status(400).json({ error: 'El audio no puede durar más de 10 minutos.' });
     }
 
     // 3. Transcribir
