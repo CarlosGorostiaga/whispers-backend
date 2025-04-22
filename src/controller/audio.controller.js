@@ -7,8 +7,13 @@ const procesarAudio = async (req, res, next) => {
   try {
     const audioPath = path.join(__dirname, '..', 'uploads', req.file.filename);
 
-    // 2. Validación de duración (20 min = 1200 s)
-    const duration = await getAudioDurationInSeconds(audioPath);
+    // 2. Validación de duración (10 min = 600 s) con manejo de errores
+    let duration = 0;
+    try {
+      duration = await getAudioDurationInSeconds(audioPath);
+    } catch (err) {
+      console.warn('No se pudo leer la duración del audio, omitiendo validación:', err);
+    }
     if (duration > 10 * 60) {
       fs.unlinkSync(audioPath);
       return res.status(400).json({ error: 'El audio no puede durar más de 10 minutos.' });
@@ -45,10 +50,14 @@ const procesarAudio = async (req, res, next) => {
     // 5. Limpieza
     fs.unlinkSync(audioPath);
   } catch (error) {
+    // Si es error de duración no encontrada
+    if (error.message && error.message.includes('No duration found')) {
+      return res.status(400).json({ error: 'No se pudo procesar la duración del audio. Asegúrate de enviar un fichero válido.' });
+    }
     next(error);
   }
 };
 
-
 module.exports = { procesarAudio };
+
 
