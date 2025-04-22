@@ -4,10 +4,10 @@ const path       = require('path');
 const rateLimit  = require('express-rate-limit');
 const { procesarAudio } = require('../controller/audio.controller');
 
-// 1. Rate‑limit: 2 peticiones cada 3 horas por IP
+// 1. Rate‑limit: 3 peticiones cada 3 horas por IP
 const uploadLimiter = rateLimit({
   windowMs: 3 * 60 * 60 * 1000,  // 3 horas
-  max: 100,
+  max: 3,
   message: { error: 'Solo puedes subir 2 audios cada 3 horas.' },
   standardHeaders: true,
   legacyHeaders: false,
