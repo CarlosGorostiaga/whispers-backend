@@ -1,10 +1,8 @@
-const express = require('express');
-const multer = require('multer');
-const path = require('path');
-const rateLimit = require('express-rate-limit');
+const express    = require('express');
+const multer     = require('multer');
+const path       = require('path');
+const rateLimit  = require('express-rate-limit');
 const { procesarAudio } = require('../controller/audio.controller');
-
-
 
 // 1. Rate‑limit: 2 peticiones cada 3 horas por IP
 const uploadLimiter = rateLimit({
@@ -19,7 +17,7 @@ const uploadLimiter = rateLimit({
 const allowedMimeTypes = [
   'audio/flac',
   'audio/m4a',
-  'audio/x-m4a', // Para iPhone
+  'audio/x-m4a',
   'audio/mp3',
   'audio/mp4',
   'audio/mpeg',
@@ -30,7 +28,7 @@ const allowedMimeTypes = [
   'audio/webm'
 ];
 
-// Mapeo para asignar la extensión correcta según el MIME type
+// Mapeo de extensión según el MIME “limpio”
 const extensionForMime = {
   'audio/flac': 'flac',
   'audio/m4a': 'm4a',
@@ -45,29 +43,33 @@ const extensionForMime = {
   'audio/webm': 'webm'
 };
 
-
-
 const storage = multer.diskStorage({
   destination: path.join(__dirname, '..', 'uploads'),
   filename: (req, file, cb) => {
-    const ext = extensionForMime[file.mimetype] || 'bin';
-    cb(null, Date.now() + '-grabacion.' + ext);
+    // Normalizamos el mimeType para elegir la extensión
+    const pureMime = file.mimetype.split(';')[0].trim();
+    const ext = extensionForMime[pureMime] || 'bin';
+    cb(null, `${Date.now()}-grabacion.${ext}`);
   }
 });
 
 const fileFilter = (req, file, cb) => {
-  if (allowedMimeTypes.includes(file.mimetype)) {
+  // Limpiamos cualquier “;codecs=…” del mimetype
+  const pureMime = file.mimetype.split(';')[0].trim();
+  console.log('>> Archivo recibido con mimeType:', file.mimetype, '→ pureMime:', pureMime);
+
+  if (allowedMimeTypes.includes(pureMime)) {
     cb(null, true);
   } else {
-    cb(new Error('Formato de archivo no permitido. Por favor, sube un audio válido.'), false);
+    cb(new Error(
+      `Formato ${pureMime} no permitido. Usa uno de: ${allowedMimeTypes.join(', ')}`
+    ), false);
   }
 };
 
 const upload = multer({ storage, fileFilter });
-
 const router = express.Router();
 
-// Aplicamos el rate limiter Y luego Multer + controlador
 router.post(
   '/audio',
   uploadLimiter,
@@ -76,3 +78,4 @@ router.post(
 );
 
 module.exports = router;
+
