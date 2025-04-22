@@ -4,7 +4,7 @@ const path       = require('path');
 const rateLimit  = require('express-rate-limit');
 const { procesarAudio } = require('../controller/audio.controller');
 
-// 1. Rate‑limit: 2 peticiones cada 3 horas por IP
+// 1. Rate‑limit: 2 peticiones cada 3 horas por IP
 const uploadLimiter = rateLimit({
   windowMs: 3 * 60 * 60 * 1000,  // 3 horas
   max: 100,
@@ -13,7 +13,7 @@ const uploadLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Lista de MIME types permitidos
+// MIME types permitidos "puro" (sin codecs)
 const allowedMimeTypes = [
   'audio/flac',
   'audio/m4a',
@@ -28,7 +28,7 @@ const allowedMimeTypes = [
   'audio/webm'
 ];
 
-// Mapeo de extensión según el MIME “limpio”
+// Extensiones según MIME puro
 const extensionForMime = {
   'audio/flac': 'flac',
   'audio/m4a': 'm4a',
@@ -46,15 +46,15 @@ const extensionForMime = {
 const storage = multer.diskStorage({
   destination: path.join(__dirname, '..', 'uploads'),
   filename: (req, file, cb) => {
-    // Normalizamos el mimeType para elegir la extensión
+    // 1) Limpiamos cualquier ";codecs=..."  
     const pureMime = file.mimetype.split(';')[0].trim();
-    const ext = extensionForMime[pureMime] || 'bin';
+    // 2) Sacamos la extensión; si no existe, forzamos .webm
+    const ext = extensionForMime[pureMime] || 'webm';
     cb(null, `${Date.now()}-grabacion.${ext}`);
   }
 });
 
 const fileFilter = (req, file, cb) => {
-  // Limpiamos cualquier “;codecs=…” del mimetype
   const pureMime = file.mimetype.split(';')[0].trim();
   console.log('>> Archivo recibido con mimeType:', file.mimetype, '→ pureMime:', pureMime);
 
@@ -78,4 +78,5 @@ router.post(
 );
 
 module.exports = router;
+
 

@@ -7,7 +7,15 @@ const procesarAudio = async (req, res, next) => {
   try {
     const audioPath = path.join(__dirname, '..', 'uploads', req.file.filename);
 
-    // 2. Validación de duración (10 min = 600 s) con manejo de errores
+    // 1) Logs para verificar archivo en disco
+    console.log('>> Audio en disco:', audioPath);
+    const stats = fs.statSync(audioPath);
+    console.log(`   → Tamaño en bytes: ${stats.size}`);
+    if (stats.size === 0) {
+      throw new Error('Archivo vacío');
+    }
+
+    // 2) Validación de duración (10 min = 600 s), ignorando errores de metadata
     let duration = 0;
     try {
       duration = await getAudioDurationInSeconds(audioPath);
@@ -19,15 +27,17 @@ const procesarAudio = async (req, res, next) => {
       return res.status(400).json({ error: 'El audio no puede durar más de 10 minutos.' });
     }
 
-    // 3. Transcribir
+    // 3) Transcripción con Whisper API
     const transcription = await openai.audio.transcriptions.create({
       file: fs.createReadStream(audioPath),
       model: "whisper-1",
       language: "es"
     });
+    console.log('>> Transcripción Whisper completa:', transcription);
+    console.log('>> transcription.text:', JSON.stringify(transcription.text));
     const texto = transcription.text;
 
-    // 4. Resumir
+    // 4) Resumen con GPT-4.1-nano
     const resumenResponse = await openai.chat.completions.create({
       model: "gpt-4.1-nano",
       messages: [
@@ -43,21 +53,26 @@ const procesarAudio = async (req, res, next) => {
     });
 
     const resumenTexto = resumenResponse.choices[0].message.content;
-    const resumen = resumenTexto.split('\n').filter(line => line.trim() !== '');
+    const resumen = resumenTexto
+      .split('\n')
+      .filter(line => line.trim() !== '');
 
+    // 5) Devuelve el resumen
     res.json({ resumen });
 
-    // 5. Limpieza
+    // 6) Limpieza: borra el archivo temporal
     fs.unlinkSync(audioPath);
+
   } catch (error) {
-    // Si es error de duración no encontrada
-    if (error.message && error.message.includes('No duration found')) {
-      return res.status(400).json({ error: 'No se pudo procesar la duración del audio. Asegúrate de enviar un fichero válido.' });
+    // Captura error de archivo vacío o duration metadata
+    if (error.message && (error.message === 'Archivo vacío' || error.message.includes('No duration found'))) {
+      return res.status(400).json({ error: 'No se pudo procesar el audio. Asegúrate de enviar un fichero válido.' });
     }
     next(error);
   }
 };
 
 module.exports = { procesarAudio };
+
 
 
