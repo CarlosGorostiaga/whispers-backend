@@ -43,7 +43,7 @@ const procesarAudio = async (req, res, next) => {
       messages: [
         {
           role: "system",
-          content: "Eres un asistente que resume audios de reuniones y juntas en español en puntos clave enumerados, destacando lo más importante."
+          content: "Eres un asistente que resume audios de reuniones y juntas en español en puntos clave enumerados, destacando lo más importante, usa una lenguaje llamativo y empresarial , si ves que algo no tiene sentido intenta encontrarle el sentido los mas fielmente posible"
         },
         {
           role: "user",
